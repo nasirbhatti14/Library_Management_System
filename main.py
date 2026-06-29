@@ -6,7 +6,7 @@ load_dotenv()
 
 conn = mysql.connector.connect(
     host = os.getenv("db_host"),
-    username = os.getenv("db_username"),
+    user = os.getenv("db_username"),
     password = os.getenv("db_password"),
     database = os.getenv("db_database")
 )
@@ -21,7 +21,11 @@ while True:
     print("5. Return Book")
     print("6. Exit\n")
 
-    user = int(input("Choose option: "))
+    try:
+        user = int(input("Choose option: "))
+    except ValueError:
+        print("Enter valid number 1 - 6")
+        continue
 
     
 
@@ -33,11 +37,14 @@ while True:
             m_email = input("Email: ")
             cursor3 = conn.cursor(dictionary=True)
             cursor3.execute("select 1 from members where email = %s", (m_email,))
-
-            if cursor3.fetchone():
+            result = cursor3.fetchone()
+            cursor3.close()
+            if result:
                 print("Email Already Registered, Please try again with new email!")
+                
             else:
                 break
+            
 
 
         while True:
@@ -51,6 +58,7 @@ while True:
                        (m_name, m_email, m_gender))
         conn.commit()
         print("\n ====== Registeration Succeed! ======")
+        cursor.close()
 
 
     elif user == 2:
@@ -61,13 +69,15 @@ while True:
                         (members_id, books_id))
         conn.commit()
         print("\n ====== Book Issued! ======")
+        cursor1.close()
 
     elif user == 3:
         print("\n         ====== All Issued Books! ======\n")
         cursor2 = conn.cursor(dictionary=True)
         cursor2.execute("Select issued_books.id, books.Title from issued_books join books on issued_books.book_id = books.id")
         for row in cursor2:
-            print(f"{row["id"]}. {row["Title"]}")
+            print(f"{row['id']}. {row['Title']}")
+        cursor2.close()
 
 
     elif user == 4:
@@ -78,11 +88,12 @@ while True:
 
         records = cursor4.fetchall()
         if records:
-            print(f"\nMembers: {records[0]["name"]}")
+            print(f"\nMembers: {records[0]['name']}")
             for r in records:
-                print(f"{r["Title"]} - {r["Total_books"]} copies")
+                print(f"{r['Title']} - {r['Total_books']} copies")
         else:
             print("No books issued by this member!")
+        cursor4.close()
 
 
 
@@ -98,9 +109,11 @@ while True:
         else:
             conn.commit()
             print("------ Book Returned! ------\n")
+        cursor5.close()
 
     elif user == 6:
         print(" ------ Program Exit ------")
+        conn.close()
         break
 
 
