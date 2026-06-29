@@ -136,7 +136,7 @@ Simply enter a number (1–6) to navigate the system.
 ## 👤 Author
 
 **Nasir**
-- GitHub: [@nasirbhatti14](https://github.com/nasirbhatti14/Library_Management_System)
+- GitHub: [@nasirbhatti14](https://github.com/nasirbhatti14)
 
 ---
 
