@@ -28,9 +28,27 @@ except:
     conn = get_connection()
 
 st.title("LIBRARY MANAGEMENT SYSTEM")
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    with st.form("login_form"):
+        password = st.text_input("Enter access code:", type="password")
+        login_btn = st.form_submit_button("Login")
+
+    if login_btn:
+        if password == os.getenv("app_password"):
+            st.session_state.authenticated = True
+            st.rerun()   # turant refresh karo taake menu dikhe
+        else:
+            st.error("Incorrect access code. Please try again.")
+
+    st.stop()
+
 password = st.text_input("Enter access code: ", type="password")
 
-if password == os.getenv("app_password"):
+if True:
 
     st.sidebar.title("Library Menu:")
     menu = st.sidebar.selectbox("Menu", ["Member Registration","View all registered members", "Available Books", "Issue Book", "Display all Issued Books", "Member's Issued Books", "Return Book"])
