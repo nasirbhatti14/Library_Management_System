@@ -16,7 +16,8 @@ def get_connection():
         password = os.getenv("db_password"),
         database = os.getenv("db_database"),
         ssl_ca = "ca.pem",
-        ssl_verify_cert = True
+        ssl_verify_cert = True,
+        autocommit = True
         )
   
 conn = get_connection()
