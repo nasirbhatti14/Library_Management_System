@@ -18,7 +18,7 @@ def get_connection():
         ssl_ca = "ca.pem",
         ssl_verify_cert = True
         )
-# print(os.path.exists("ca.pem"))    
+  
 conn = get_connection()
 
 try:
@@ -34,13 +34,14 @@ if "authenticated" not in st.session_state:
 
 if not st.session_state.authenticated:
     with st.form("login_form"):
+        st.info(f"Access Code Hint:  **{os.getenv('app_password')}**")
         password = st.text_input("Enter access code:", type="password")
         login_btn = st.form_submit_button("Login")
 
     if login_btn:
         if password == os.getenv("app_password"):
             st.session_state.authenticated = True
-            st.rerun()   # turant refresh karo taake menu dikhe
+            st.rerun()   
         else:
             st.error("Incorrect access code. Please try again.")
 
