@@ -2,7 +2,7 @@
 
 A web-based Library Management System built with **Streamlit** and **MySQL**, allowing librarians to manage members, books, and issued/returned records through a simple, interactive dashboard.
 
-🔗 **Live Demo:** [Add your Streamlit Cloud link here]
+🔗 **Live Demo:** [https://librarymanages.streamlit.app/]
 
 ---
 
