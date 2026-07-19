@@ -1,120 +1,158 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
+import streamlit as st
 
 load_dotenv()
 
-conn = mysql.connector.connect(
-    host = os.getenv("db_host"),
-    user = os.getenv("db_username"),
-    password = os.getenv("db_password"),
-    database = os.getenv("db_database")
-)
 
+@st.cache_resource
+def get_connection():
 
-while True:
-    print("\n========== LIBRARY MANAGEMENT SYSTEM ==========")
-    print("\n1. Member Registration")
-    print("2. Issue Book")
-    print("3. Display all Issued Books")
-    print("4. Member's Issued Books")
-    print("5. Return Book")
-    print("6. Exit\n")
+    return mysql.connector.connect(
+        host = os.getenv("db_host"),
+        user = os.getenv("db_username"),
+        port = os.getenv("db_port"),
+        password = os.getenv("db_password"),
+        database = os.getenv("db_database"),
+        ssl_ca = "ca.pem",
+        ssl_verify_cert = True
+        )
+# print(os.path.exists("ca.pem"))    
+conn = get_connection()
 
-    try:
-        user = int(input("Choose option: "))
-    except ValueError:
-        print("Enter valid number 1 - 6")
-        continue
+try:
+    conn.ping(reconnect=True, attempts=3, delay=2)
+except:
+    st.cache_resource.clear()
+    conn = get_connection()
 
+st.title("LIBRARY MANAGEMENT SYSTEM")
+password = st.text_input("Enter access code: ", type="password")
+
+if password == os.getenv("app_password"):
+
+    st.sidebar.title("Library Menu:")
+    menu = st.sidebar.selectbox("Menu", ["Member Registration","View all registered members", "Available Books", "Issue Book", "Display all Issued Books", "Member's Issued Books", "Return Book"])
     
+    if menu == "Member Registration":
+        st.header("Member Registration") 
 
-    if user == 1:
-        m_name = input("Member's name: ")
-
+        m_name = st.text_input("Member's name: ")
         
-        while True:
-            m_email = input("Email: ")
-            cursor3 = conn.cursor(dictionary=True)
+        m_email = st.text_input("Email: ")
+        m_gender = st.radio("Select gender", ["male", "female", "other"])
+
+        cursor3 = conn.cursor(dictionary=True)
+
+        result = None
+
+        if m_email:
             cursor3.execute("select 1 from members where email = %s", (m_email,))
             result = cursor3.fetchone()
-            cursor3.close()
-            if result:
-                print("Email Already Registered, Please try again with new email!")
-                
-            else:
-                break
+                 
             
+        with st.form("Register"):
+            submitted = st.form_submit_button("Register")
 
+        if submitted:    
 
-        while True:
-            m_gender = input("Gender(male / female / other): ").strip().lower()
-            if m_gender in ["male", "female", "other"]:
-                break
-            print("Invalid gender! Please enter Male/Female/Other")
-        
-        cursor = conn.cursor()
-        cursor.execute("Insert into members (name, email, gender) values (%s, %s, %s)",
+            if not m_name or not m_email:
+                st.error("Please fill all fields")
+            elif result:
+                st.error("Email Already Registered, Please try again with new email!")
+            else:
+
+                cursor = conn.cursor()
+                cursor.execute("Insert into members (name, email, gender) values (%s, %s, %s)",
                        (m_name, m_email, m_gender))
-        conn.commit()
-        print("\n ====== Registeration Succeed! ======")
-        cursor.close()
+                conn.commit()
+                st.success("\n ====== Registeration Succeed! ======")
+                cursor.close()
+        cursor3.close()
 
 
-    elif user == 2:
-        members_id = int(input("Member's Id: "))
-        books_id = int(input("Book's Id "))
-        cursor1 = conn.cursor()
-        cursor1.execute("Insert into issued_books (member_id, book_id) values(%s, %s)",
+
+
+    if menu == "View all registered members":
+        st.header("Registered Members")
+        cursor7 = conn.cursor(dictionary=True)
+        cursor7.execute("select * from members;")
+        mem = cursor7.fetchall()
+        st.dataframe(mem)
+        cursor7.close()
+        
+        
+    if menu == "Available Books":
+        st.header("Available Books")
+        cursor6 = conn.cursor(dictionary=True)
+        cursor6.execute("Select * from books")
+        all_books = cursor6.fetchall()
+        st.dataframe(all_books)
+        cursor6.close()
+
+
+
+    if menu == "Issue Book":
+        st.header("Issue Book")
+        members_id = st.number_input("Member's ID:", min_value=1, step=1)
+        books_id = st.number_input("Book ID:", min_value=1, step=1)
+
+        if st.button("Issue"):
+            cursor1 = conn.cursor()
+            try:
+                cursor1.execute("Insert into issued_books (member_id, book_id) values(%s, %s)",
                         (members_id, books_id))
-        conn.commit()
-        print("\n ====== Book Issued! ======")
-        cursor1.close()
+                conn.commit()
+                st.success("Book Issued!")
+            except mysql.connector.Error as e:
+                st.error(e)
+            finally:
+                cursor1.close()
+    
 
-    elif user == 3:
-        print("\n         ====== All Issued Books! ======\n")
+    if menu == "Display all Issued Books":
+        st.header("All Issued Books!")
         cursor2 = conn.cursor(dictionary=True)
-        cursor2.execute("Select issued_books.id, books.Title from issued_books join books on issued_books.book_id = books.id")
-        for row in cursor2:
-            print(f"{row['id']}. {row['Title']}")
+        cursor2.execute("Select issued_books.member_id, books.Title from issued_books join books on issued_books.book_id = books.id")
+        row = cursor2.fetchall()
+        st.dataframe(row)
         cursor2.close()
 
 
-    elif user == 4:
-        print("\n         ====== Member's Issued Books! ======\n")
-        member_id = int(input("Member's Id: "))
+    if menu == "Member's Issued Books":
+        st.header("Member's Issued Books!")
+        member_id = st.number_input("Member's ID:", min_value=1, step=1)
         cursor4 = conn.cursor(dictionary=True)
         cursor4.execute("select members.name, books.Title, count(*) as Total_books from issued_books join members on issued_books.member_id = members.id join books on issued_books.book_id = books.id where members.id = %s group by members.id, members.name, books.Title, books.id;", (member_id,))
 
         records = cursor4.fetchall()
         if records:
-            print(f"\nMembers: {records[0]['name']}")
+            st.text(f"Member: {records[0]['name']}")
             for r in records:
-                print(f"{r['Title']} - {r['Total_books']} copies")
+                st.success(f"Book: {r['Title']} - {r['Total_books']} copies")
         else:
-            print("No books issued by this member!")
+            st.error("No books issued by this member!")
         cursor4.close()
 
 
 
-    elif user == 5:
-        print("\n         ====== Return Book ======\n")
-        member1_id = int(input("Member's Id: "))
-        book1_id = int(input("Book Id: "))
+    if menu == "Return Book":
+        st.header("Return Book")
+        # member1_id = int(input("Member's Id: "))
+        member1_id = st.number_input("Member's ID:", min_value=1, step=1)
+        # book1_id = int(input("Book Id: "))
+        book1_id = st.number_input("Book ID:", min_value=1, step=1)
 
-        cursor5 = conn.cursor()
-        cursor5.execute("delete from issued_books where member_id = %s and book_id = %s", (member1_id, book1_id))
-        if cursor5.rowcount == 0:
-            print("No such Issued books record found! ")
-        else:
-            conn.commit()
-            print("------ Book Returned! ------\n")
-        cursor5.close()
-
-    elif user == 6:
-        print(" ------ Program Exit ------")
-        conn.close()
-        break
-
-
-
+        if st.button("Return"):
+            cursor5 = conn.cursor()
+            cursor5.execute("delete from issued_books where member_id = %s and book_id = %s", (member1_id, book1_id))
+            if cursor5.rowcount == 0:
+                st.error("No such Issued books record found! ")
+            else:
+                conn.commit()
+                st.success("------ Book Returned! ------\n")
+            cursor5.close()
+else:
+    st.warning("Please enter correct access code")
+    st.stop()
