@@ -20,13 +20,15 @@ def get_connection():
         autocommit = True
         )
   
-conn = get_connection()
+# conn = get_connection()
 
 try:
-    conn.ping(reconnect=True, attempts=3, delay=2)
-except:
-    st.cache_resource.clear()
     conn = get_connection()
+    conn.ping(reconnect=True, attempts=3, delay=2)
+except mysql.connector.Error:
+    st.error("⚠️ This demo's database is currently sleeping to save resources. Please try again in a minute, or contact me directly if it doesn't wake up.")
+    st.stop()
+
 
 st.title("LIBRARY MANAGEMENT SYSTEM")
 
